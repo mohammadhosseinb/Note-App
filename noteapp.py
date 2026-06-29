@@ -3,6 +3,7 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QTex
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QMessageBox
 from uuid import uuid4
 from PySide6.QtCore import Qt
+import pandas as pd
 
 class NoteManager:
     def __init__(self):
@@ -15,20 +16,35 @@ class NoteManager:
          self.notes[note_id] = {"title": note_name, "description": note_description}
 
     def load_data(self):
-        pass
+        df = pd.read_csv("notedata.csv")
+        for i in range(len(df)):
+            note = df.loc[i,:].to_list()
+            self.notes[note[1]]={"title": note[2], "description": note[3]}
 
     def save_data(self):
-        pass
+        df = list()
+        for note in self.notes.items():
+            note_dict = {"note_id": note[0], "title": note[1]["title"], "description": note[1]["description"]}
+            df.append(note_dict)
+        df = pd.DataFrame(df)
+        df.to_csv("notedata.csv")
 
 class NoteApp(QWidget):
     def __init__(self):
         super().__init__()
         self.manager = NoteManager()
+        #self
+        self.load_data()
         self.setup_window()
         self.create_widgets()
         self.create_layout()
         self.create_connections()
 
+    def load_data(self):
+        try:
+            self.manager.load_data()
+        except:
+            print("No such file or directory: 'notedata.csv'")
     def setup_window(self):
         self.setWindowTitle("Note App")
         self.resize(1080, 720)
@@ -60,6 +76,7 @@ class NoteApp(QWidget):
         left_layout.addWidget(self.app_name_label)
         left_layout.addWidget(self.note_list)
         left_layout.addWidget(self.clear_button)
+        self.refresh_note_list()
         #--------------------------------------right layout
         option_layout = QHBoxLayout()
         #option menu
@@ -71,7 +88,7 @@ class NoteApp(QWidget):
 
         #name field
         right_layout.addWidget(self.note_name_edit)
-
+        
         #text editor
         right_layout.addWidget(self.text_editor)
 
@@ -94,6 +111,7 @@ class NoteApp(QWidget):
             item.setText(note["title"])
             item.setData(Qt.UserRole, id)
             self.note_list.addItem(item)
+        self.manager.save_data()
 
     def add_note(self):
         note_name = self.note_name_edit.text()
